@@ -1,0 +1,108 @@
+services:
+  # 1. PostgreSQL Database Service
+  postgres:
+    image: postgres:16-alpine
+    container_name: aura_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: aura_pos
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d aura_pos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. AURA POS FastAPI Backend Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aura_backend
+    restart: unless-stopped
+    command: >
+      sh -c "uv run alembic upgrade head &&
+             uv run python scripts/seed.py &&
+             uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/aura_pos
+      - JWT_SECRET=development_secret_key_aura_pos_2026
+      - ENVIRONMENT=development
+      - HERMES_API_URL=http://aura_hermes_agent:8642
+      - HERMES_API_SERVER_KEY=${HERMES_API_SERVER_KEY}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # 3. Model Context Protocol (MCP) SSE Server for Hermes
+  mcp_sse:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aura_mcp_sse
+    restart: unless-stopped
+    command: "uv run python -m app.mcp.server --transport sse"
+
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/aura_pos
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+
+  # 4. Streamlit Interactive Test Application UI
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aura_streamlit
+    restart: unless-stopped
+    command: "uv run streamlit run tests/streamlit/app.py --server.address 0.0.0.0 --server.port 8501"
+    environment:
+      - API_BASE_URL=http://backend:8000/api/v1
+    ports:
+      - "8502:8501"
+    depends_on:
+      - backend
+
+
+  # 5. Hermes Conversational Reasoning Agent Service
+  hermes_agent:
+    image: nousresearch/hermes-agent:latest
+    container_name: aura_hermes_agent
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    command: ["gateway", "run"]
+    environment:
+      - API_SERVER_HOST=0.0.0.0
+      - API_SERVER_ENABLED=true
+      - API_SERVER_PORT=8642
+      - API_SERVER_KEY=${HERMES_API_SERVER_KEY}
+      - LLM_API_KEY=${LLM_API_KEY:-mock-development-key}
+      - MCP_SERVER_URL=http://mcp_sse:8001/sse
+      - SYSTEM_ROLE=OWNER
+      - HERMES_DASHBOARD=true
+      - HERMES_DASHBOARD_HOST=0.0.0.0
+      - HERMES_DASHBOARD_PORT=9119
+      - HERMES_DASHBOARD_BASIC_AUTH_USERNAME=admin
+      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=admin
+    ports:
+       - "9119:9119"
+       - "8642:8642"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - mcp_sse
+
+volumes:
+  postgres_data:
