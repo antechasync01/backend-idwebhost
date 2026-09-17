@@ -10,3 +10,6 @@ docs/
 .venv
 .env
 
+# Google OAuth credentials
+app/core/*client_secret*.json
+
