@@ -15,8 +15,33 @@ from api_client import AuraAPIClient, extract_items
 
 
 def render_wh_admin_ui(client: AuraAPIClient):
-    st.markdown("## 🏬 Warehouse Admin Portal")
-    st.caption("Aplikasi Manajer Gudang AURA — Product Master, Persetujuan Pendaftaran, Penerimaan Barang, Stock Adjustment & Opname")
+    # Check Attendance Status
+    ok, att_status = client.get_attendance_status()
+    if ok and isinstance(att_status, dict) and not att_status.get("is_clocked_in"):
+        st.markdown("## 🛑 Akses Terkunci (Clock-Out)")
+        st.warning("Anda saat ini sedang dalam status Clock-Out. Silakan mulai shift (Clock-in) untuk dapat mengakses sistem admin gudang.")
+        if st.button("▶️ Mulai Shift (Clock-In)", type="primary"):
+            ok_in, res_in = client.clock_in()
+            if ok_in:
+                st.success("Berhasil clock-in! Memuat ulang sistem...")
+                st.rerun()
+            else:
+                st.error(f"Gagal clock-in: {res_in}")
+        return
+
+    c1, c2 = st.columns([4, 1])
+    with c1:
+        st.markdown("## 🏬 Warehouse Admin Portal")
+        st.caption("Aplikasi Manajer Gudang AURA — Product Master, Persetujuan Pendaftaran, Penerimaan Barang, Stock Adjustment & Opname")
+    with c2:
+        st.write("")
+        if st.button("⏹️ Akhiri Shift (Clock-Out)"):
+            ok_out, res_out = client.clock_out()
+            if ok_out:
+                st.success("Berhasil clock-out! Menutup akses...")
+                st.rerun()
+            else:
+                st.error(f"Gagal clock-out: {res_out}")
 
     tab_products, tab_registrations, tab_receivings, tab_stock, tab_movements = st.tabs(
         ["📦 Catalog & Product Master", "📋 Request Produk Baru", "🚚 Approval Penerimaan Barang", "🔁 Penyesuaian & Transfer Stok", "📜 Stock Movement Logs"]

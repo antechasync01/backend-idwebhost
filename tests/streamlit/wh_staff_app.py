@@ -15,8 +15,33 @@ from api_client import AuraAPIClient, extract_items
 
 
 def render_wh_staff_ui(client: AuraAPIClient):
-    st.markdown("## 📦 Staf Gudang Operational App")
-    st.caption("Aplikasi Operasional Staf Gudang AURA — Scan Barcode, Pengajuan Produk Baru, Penerimaan Fisik, dan Replenish Display")
+    # Check Attendance Status
+    ok, att_status = client.get_attendance_status()
+    if ok and isinstance(att_status, dict) and not att_status.get("is_clocked_in"):
+        st.markdown("## 🛑 Akses Terkunci (Clock-Out)")
+        st.warning("Anda saat ini sedang dalam status Clock-Out. Silakan mulai shift (Clock-in) untuk dapat mengakses sistem staf gudang.")
+        if st.button("▶️ Mulai Shift (Clock-In)", type="primary"):
+            ok_in, res_in = client.clock_in()
+            if ok_in:
+                st.success("Berhasil clock-in! Memuat ulang sistem...")
+                st.rerun()
+            else:
+                st.error(f"Gagal clock-in: {res_in}")
+        return
+
+    c1, c2 = st.columns([4, 1])
+    with c1:
+        st.markdown("## 📦 Warehouse Staff Terminal")
+        st.caption("Aplikasi Staf Gudang AURA — Input Produk Baru & Bukti Penerimaan Barang dari Supplier")
+    with c2:
+        st.write("")
+        if st.button("⏹️ Akhiri Shift (Clock-Out)"):
+            ok_out, res_out = client.clock_out()
+            if ok_out:
+                st.success("Berhasil clock-out! Menutup akses...")
+                st.rerun()
+            else:
+                st.error(f"Gagal clock-out: {res_out}")
 
     tab_scan, tab_register, tab_receiving, tab_replenish, tab_wh_req = st.tabs(
         ["🔍 Scan & Lookup Stok", "📝 Pengajuan Produk Baru", "🚚 Fisik Penerimaan Barang", "⚡ Replenish Rak Display", "📋 Permintaan Gudang"]

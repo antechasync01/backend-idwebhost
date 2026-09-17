@@ -1,6 +1,7 @@
 import enum
 import uuid
-from sqlalchemy import Boolean, Enum, ForeignKey, String, Text, UniqueConstraint
+from datetime import datetime, date as dt_date
+from sqlalchemy import Boolean, Enum, ForeignKey, String, Text, UniqueConstraint, DateTime, Date
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base, TimestampMixin
@@ -153,4 +154,32 @@ class User(Base, TimestampMixin):
             self.role_rel = Role(code=code_str)
 
 
+class Attendance(Base, TimestampMixin):
+    __tablename__ = "attendances"
 
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    clock_in_time: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False
+    )
+    clock_out_time: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True
+    )
+    date: Mapped[dt_date] = mapped_column(
+        Date,
+        nullable=False,
+        index=True
+    )
+
+    user: Mapped["User"] = relationship("User", backref="attendances")

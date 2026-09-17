@@ -76,3 +76,44 @@ def get_sales_trend(
         data=trend,
         status_code=status.HTTP_200_OK,
     )
+
+
+@router.get("/periodic-insights", status_code=status.HTTP_200_OK)
+def get_periodic_insights(
+    period_type: str = Query(..., description="WEEKLY or MONTHLY"),
+    current_user: User = Depends(require_permission("analytics.read")),
+    db: Session = Depends(get_db),
+):
+    """Retrieve the latest automated periodic AI analysis."""
+    from app.modules.analytics.application.periodic_analysis_service import PeriodicAnalysisService
+    from app.modules.analytics.infrastructure.models import AnalysisPeriod
+    
+    try:
+        p_type = AnalysisPeriod(period_type.upper())
+    except ValueError:
+        return create_response(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            message=f"Invalid period_type. Must be WEEKLY or MONTHLY."
+        )
+
+    service = PeriodicAnalysisService(db)
+    analysis = service.get_latest_analysis(p_type)
+    
+    if not analysis:
+        return create_response(
+            status_code=status.HTTP_404_NOT_FOUND,
+            message="No periodic analysis found for the given period."
+        )
+
+    return create_response(
+        data={
+            "id": str(analysis.id),
+            "period_type": analysis.period_type.value,
+            "start_date": analysis.start_date.isoformat(),
+            "end_date": analysis.end_date.isoformat(),
+            "raw_data": analysis.raw_data,
+            "analysis_result": analysis.analysis_result,
+            "generated_at": analysis.generated_at.isoformat()
+        },
+        status_code=status.HTTP_200_OK,
+    )

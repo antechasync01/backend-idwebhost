@@ -24,6 +24,9 @@ dependencies = [
     "streamlit>=1.63.0",
     "requests>=2.34.2",
     "mcp>=2",
+    "google-auth-oauthlib>=1.4.1",
+    "google-api-python-client>=2.200.0",
+    "apscheduler>=3.11.3",
 ]
 
 [project.scripts]
@@ -43,6 +46,7 @@ package = false
 venvPath = "."
 venv = ".venv"
 extraPaths = [".", "tests/streamlit"]
+typeCheckingMode = "standard"
 
 
 

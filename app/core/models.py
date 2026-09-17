@@ -10,6 +10,7 @@ from app.modules.users.infrastructure.models import (
     Role,
     Permission,
     RolePermission,
+    Attendance,
 )
 from app.modules.products.infrastructure.models import (
     Category,
@@ -53,7 +54,7 @@ from app.modules.sales.infrastructure.models import (
     InventoryClosingVarianceStatus,
 )
 from app.modules.audit.infrastructure.models import AuditLog, ActorType
-from app.modules.events.infrastructure.models import ExternalEvent, EventImpactLevel
+from app.modules.events.infrastructure.models import ExternalEvent
 from app.modules.ai.infrastructure.models import (
     AIInsight,
     InsightType,
@@ -66,6 +67,13 @@ from app.modules.ai.infrastructure.models import (
     RiskLevel,
 )
 from app.modules.notifications.infrastructure.models import Notification, NotificationType
+from app.modules.analytics.infrastructure.models import PeriodicAnalysis, AnalysisPeriod
+from app.modules.tasks.infrastructure.models import (
+    Task,
+    TaskComment,
+    TaskStatus,
+    TaskPriority,
+)
 
 __all__ = [
     "Base",
@@ -74,6 +82,7 @@ __all__ = [
     "Role",
     "Permission",
     "RolePermission",
+    "Attendance",
     "Category",
     "Product",
     "ProductStatus",
@@ -108,7 +117,6 @@ __all__ = [
     "AuditLog",
     "ActorType",
     "ExternalEvent",
-    "EventImpactLevel",
     "AIInsight",
     "InsightType",
     "InsightPriority",
@@ -120,4 +128,10 @@ __all__ = [
     "RiskLevel",
     "Notification",
     "NotificationType",
+    "PeriodicAnalysis",
+    "AnalysisPeriod",
+    "Task",
+    "TaskComment",
+    "TaskStatus",
+    "TaskPriority",
 ]

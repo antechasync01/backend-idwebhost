@@ -108,6 +108,18 @@ def generate_reorder_recommendations(product_id: str | None = None) -> list[dict
         db.close()
 
 
+@mcp.tool()
+def get_upcoming_events(days: int = 7) -> list[dict[str, Any]]:
+    """Ambil daftar event/acara yang akan datang dalam N hari ke depan dari Google Calendar (hari libur, promo, dll)."""
+    from app.modules.events.application.events_service import EventsService
+    db = SessionLocal()
+    try:
+        service = EventsService(db)
+        return service.get_upcoming_events(days=days)
+    finally:
+        db.close()
+
+
 # Expose Starlette ASGI Application for SSE Transport (backwards compat)
 sse_app = mcp.sse_app(sse_path="/sse", host="0.0.0.0")
 

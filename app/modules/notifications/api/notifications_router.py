@@ -18,14 +18,15 @@ def get_notifications(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    user_role = current_user.role
-    conditions = [Notification.user_id == current_user.id]
-    if user_role:
-        conditions.append(Notification.target_role == user_role)
-
+    """Retrieve notifications targeting current user or current user's role."""
     stmt = (
         select(Notification)
-        .where(or_(*conditions))
+        .where(
+            or_(
+                Notification.user_id == current_user.id,
+                Notification.target_role == current_user.role
+            )
+        )
         .order_by(Notification.created_at.desc())
         .limit(20)
     )
@@ -65,6 +66,6 @@ def mark_notification_as_read(
 
     return create_response(
         data={"id": str(notif.id), "is_read": True},
-        meta={"message": "Notification marked as read"},
+        message="Notification marked as read",
         status_code=status.HTTP_200_OK,
     )

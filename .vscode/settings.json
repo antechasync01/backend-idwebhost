@@ -1,0 +1,5 @@
+{
+  "basedpyright.analysis.typeCheckingMode": "standard",
+  "basedpyright.analysis.autoSearchPaths": true,
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe"
+}

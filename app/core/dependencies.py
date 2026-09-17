@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.database import get_db
 from app.core.exceptions import AuthenticationError, ForbiddenError
 from app.core.security import decode_token
-from app.modules.users.infrastructure.models import Permission, Role, RolePermission, User
+from app.modules.users.infrastructure.models import Permission, Role, RolePermission, User, UserRole
+from app.modules.users.application.attendance_service import AttendanceService
 
 security_scheme = HTTPBearer(auto_error=False)
 
@@ -65,23 +66,39 @@ def get_current_user_permissions(user: User = Depends(get_current_user)) -> set[
 
 
 def require_permission(permission_code: str) -> Callable:
-    """Dependency factory for granular permission checks."""
+    """Dependency factory for granular permission checks and clock-in validation."""
     def dependency(
         user: User = Depends(get_current_user),
         user_permissions: set[str] = Depends(get_current_user_permissions),
+        db: Session = Depends(get_db)
     ) -> User:
         if permission_code not in user_permissions:
             raise ForbiddenError(f"Forbidden: Permission '{permission_code}' is required")
+        
+        if user.role != UserRole.OWNER:
+            attendance_service = AttendanceService(db)
+            if not attendance_service.is_clocked_in(user.id):
+                raise ForbiddenError("Forbidden: You must clock in to access the system")
+                
         return user
 
     return dependency
 
 
 def require_role(role_code: str) -> Callable:
-    """Dependency factory for role code checks."""
-    def dependency(user: User = Depends(get_current_user)) -> User:
+    """Dependency factory for role code checks and clock-in validation."""
+    def dependency(
+        user: User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+    ) -> User:
         if not user.role_rel or user.role_rel.code != role_code:
             raise ForbiddenError(f"Forbidden: Role '{role_code}' is required")
+            
+        if user.role != UserRole.OWNER:
+            attendance_service = AttendanceService(db)
+            if not attendance_service.is_clocked_in(user.id):
+                raise ForbiddenError("Forbidden: You must clock in to access the system")
+                
         return user
 
     return dependency

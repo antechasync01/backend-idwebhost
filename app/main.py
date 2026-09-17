@@ -14,6 +14,10 @@ from app.modules.products.api.products_router import router as products_router
 from app.modules.sales.api.closing_router import router as closing_router
 from app.modules.sales.api.sales_router import router as sales_router
 from app.modules.warehouse.api.warehouse_router import router as warehouse_router
+from app.modules.events.api.events_router import router as events_router
+from app.modules.users.api.attendance_router import router as attendance_router
+from app.modules.tasks.api.tasks_router import router as tasks_router
+from app.core.scheduler import lifespan
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -21,6 +25,7 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url=f"{settings.API_V1_STR}/docs",
     redoc_url=f"{settings.API_V1_STR}/redoc",
+    lifespan=lifespan,
 )
 
 # Configure CORS Middleware
@@ -46,6 +51,9 @@ app.include_router(audit_router, prefix=settings.API_V1_STR)
 app.include_router(analytics_router, prefix=settings.API_V1_STR)
 app.include_router(ai_router, prefix=settings.API_V1_STR)
 app.include_router(notifications_router, prefix=settings.API_V1_STR)
+app.include_router(events_router, prefix=settings.API_V1_STR)
+app.include_router(attendance_router, prefix=settings.API_V1_STR)
+app.include_router(tasks_router, prefix=settings.API_V1_STR)
 
 
 

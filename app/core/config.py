@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     HERMES_API_SERVER_KEY: str = os.getenv("HERMES_API_SERVER_KEY", "")
     HERMES_API_URL: str = os.getenv("HERMES_API_URL", "http://127.0.0.1:8642")
 
+    # GOOGLE API
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")  
+    GOOGLE_REFRESH_TOKEN: str = os.getenv("GOOGLE_REFRESH_TOKEN", "")
+
     # CORS
     CORS_ORIGINS: list[str] = ["*"]
 

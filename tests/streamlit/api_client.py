@@ -114,6 +114,47 @@ class AuraAPIClient:
         except Exception as e:
             return False, str(e)
 
+    def get_periodic_insights(self, period_type: str) -> tuple[bool, dict | str]:
+        url = f"{self.base_url}/analytics/periodic-insights"
+        try:
+            res = requests.get(url, params={"period_type": period_type}, headers=self._headers())
+            if res.status_code == 200:
+                return True, res.json().get("data", {})
+            return False, self._parse_error(res)
+        except Exception as e:
+            return False, str(e)
+
+    # ---------------- Attendance ----------------
+    def clock_in(self) -> tuple[bool, dict | str]:
+        url = f"{self.base_url}/attendance/clock-in"
+        try:
+            res = requests.post(url, headers=self._headers())
+            if res.status_code == 200:
+                return True, res.json().get("data", {})
+            return False, self._parse_error(res)
+        except Exception as e:
+            return False, str(e)
+
+    def clock_out(self) -> tuple[bool, dict | str]:
+        url = f"{self.base_url}/attendance/clock-out"
+        try:
+            res = requests.post(url, headers=self._headers())
+            if res.status_code == 200:
+                return True, res.json().get("data", {})
+            return False, self._parse_error(res)
+        except Exception as e:
+            return False, str(e)
+
+    def get_attendance_status(self) -> tuple[bool, dict | str]:
+        url = f"{self.base_url}/attendance/status"
+        try:
+            res = requests.get(url, headers=self._headers())
+            if res.status_code == 200:
+                return True, res.json().get("data", {})
+            return False, self._parse_error(res)
+        except Exception as e:
+            return False, str(e)
+
     # ---------------- Audit Logs ----------------
     def list_audit_logs(
         self,

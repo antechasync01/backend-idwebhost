@@ -1,16 +1,9 @@
-import enum
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import DateTime, Enum, String, Text
+from sqlalchemy import DateTime, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
-
-
-class EventImpactLevel(str, enum.Enum):
-    LOW = "LOW"
-    MEDIUM = "MEDIUM"
-    HIGH = "HIGH"
 
 
 class ExternalEvent(Base):
@@ -20,6 +13,13 @@ class ExternalEvent(Base):
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4
+    )
+    google_event_id: Mapped[str | None] = mapped_column(
+        String(255),
+        unique=True,
+        index=True,
+        nullable=True,
+        comment="Google Calendar event ID for upsert deduplication"
     )
     event_type: Mapped[str] = mapped_column(
         String(50),
@@ -44,10 +44,9 @@ class ExternalEvent(Base):
         index=True,
         nullable=False
     )
-    impact_level: Mapped[EventImpactLevel] = mapped_column(
-        Enum(EventImpactLevel, name="event_impact_level_enum"),
-        default=EventImpactLevel.MEDIUM,
-        nullable=False
+    location: Mapped[str | None] = mapped_column(
+        String(500),
+        nullable=True
     )
     metadata_info: Mapped[dict | None] = mapped_column(
         JSONB,
@@ -57,4 +56,9 @@ class ExternalEvent(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         nullable=False
+    )
+    is_analyzed: Mapped[bool] = mapped_column(
+        default=False,
+        nullable=False,
+        server_default="false"
     )

@@ -66,6 +66,40 @@ def render_owner_ui(client: AuraAPIClient):
                 st.info("Belum ada data transaksi pada rentang waktu ini.")
 
         st.divider()
+        
+        st.subheader("🧠 Automated AI Sales Insights (Weekly & Monthly)")
+        with st.spinner("Mengambil analisis otomatis terbaru..."):
+            col_7d, col_30d = st.columns(2)
+            
+            with col_7d:
+                st.markdown("#### Analisis 7 Hari Terakhir")
+                ok_7, data_7 = client.get_periodic_insights("WEEKLY")
+                if ok_7 and isinstance(data_7, dict):
+                    st.caption(f"Dibuat pada: {data_7.get('generated_at', '')[:16].replace('T', ' ')}")
+                    # Extracted summary (first 150 chars or first paragraph)
+                    full_text_7 = data_7.get('analysis_result', '')
+                    summary_7 = full_text_7.split('\n')[0] if full_text_7 else ""
+                    st.write(summary_7[:150] + "...")
+                    with st.expander("Baca Analisis Selengkapnya (7 Hari)"):
+                        st.markdown(full_text_7)
+                else:
+                    st.info("Belum ada analisis mingguan yang digenerate oleh sistem.")
+                    
+            with col_30d:
+                st.markdown("#### Analisis 30 Hari Terakhir")
+                ok_30, data_30 = client.get_periodic_insights("MONTHLY")
+                if ok_30 and isinstance(data_30, dict):
+                    st.caption(f"Dibuat pada: {data_30.get('generated_at', '')[:16].replace('T', ' ')}")
+                    # Extracted summary
+                    full_text_30 = data_30.get('analysis_result', '')
+                    summary_30 = full_text_30.split('\n')[0] if full_text_30 else ""
+                    st.write(summary_30[:150] + "...")
+                    with st.expander("Baca Analisis Selengkapnya (30 Hari)"):
+                        st.markdown(full_text_30)
+                else:
+                    st.info("Belum ada analisis bulanan yang digenerate oleh sistem.")
+
+        st.divider()
 
         # Top Products
         st.subheader("🔥 Top 5 Produk Terlaris")

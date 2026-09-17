@@ -1409,7 +1409,7 @@ TransferStockUseCase
 
 API hanya bertugas sebagai entry point untuk request.
 
-## 48.2 Application Layer
+## 48.3 Application Layer
 
 Application layer merepresentasikan use case atau application operation.
 
@@ -1471,7 +1471,7 @@ Critical mutation seperti sale, receiving, transfer, dan closing harus dijalanka
 
 Application layer merupakan orchestrator, bukan tempat untuk menyimpan seluruh business rule secara langsung.
 
-## 48.3 Domain Layer
+## 48.4 Domain Layer
 
 Domain layer berisi business rule inti AURA yang harus tetap valid terlepas dari bagaimana sistem dipanggil.
 
@@ -1537,7 +1537,7 @@ MCP
 
 Hal ini memastikan backend tetap menjadi single source of truth dan Hermes/MCP tidak dapat melewati business rules backend.
 
-## 48.4 Infrastructure Layer
+## 48.5 Infrastructure Layer
 
 Infrastructure layer bertanggung jawab terhadap implementasi teknis yang digunakan untuk mengakses persistence dan external system.
 
@@ -1580,7 +1580,7 @@ Business layer tidak boleh bergantung langsung pada detail SQLAlchemy atau Postg
 
 External integrations juga ditempatkan pada infrastructure layer sehingga kegagalan external provider tidak boleh menyebabkan core POS operations gagal.
 
-## 48.5 Dependency Rules
+## 48.6 Dependency Rules
 
 AURA Backend harus mengikuti dependency direction berikut:
 
@@ -1624,7 +1624,7 @@ PostgreSQL
 
 Hermes dan MCP tidak boleh melakukan direct database access.
 
-## 48.6 SQLAlchemy Model Placement
+## 48.7 SQLAlchemy Model Placement
 
 SQLAlchemy ORM model ditempatkan pada Infrastructure layer dari module yang memiliki domain tersebut.
 
@@ -1668,7 +1668,7 @@ inventory/
 
 Dengan pola ini, database model tetap dekat dengan domain yang mengelolanya.
 
-## 48.7 Example: Create Sale
+## 48.8 Example: Create Sale
 
 Contoh implementasi Create Sale mengikuti layering berikut:
 
@@ -1738,7 +1738,7 @@ Domain
 Infrastructure
 "Bagaimana data/service tersebut diakses?"
 
-## Struktur ini mempertahankan Modular Monolith AURA sekaligus memberikan batas yang jelas antar-layer. Setiap module tetap memiliki api, application, domain, dan infrastructure sehingga business logic dapat berkembang tanpa membuat API, database, dan external integrations saling tightly coupled. Ini konsisten dengan arsitektur modular monolith dan pola module yang sudah ditetapkan dalam PRD AURA.
+Struktur ini mempertahankan Modular Monolith AURA sekaligus memberikan batas yang jelas antar-layer. Setiap module tetap memiliki api, application, domain, dan infrastructure sehingga business logic dapat berkembang tanpa membuat API, database, dan external integrations saling tightly coupled. Ini konsisten dengan arsitektur modular monolith dan pola module yang sudah ditetapkan dalam PRD AURA.
 
 ## 49. Definition of Done — Backend MVP (ringkas)
 
