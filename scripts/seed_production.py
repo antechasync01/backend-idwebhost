@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import uuid
 from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal, engine
 from app.core.models import Base
 from app.core.security import hash_password
 from app.modules.users.infrastructure.models import Permission, Role, RolePermission, User
@@ -197,11 +197,16 @@ def seed_users(db: Session, roles: dict[str, Role]) -> None:
 # ──────────────────────────────────────────────────────────────
 
 def seed_production():
+    print("=" * 55)
+    print("  AURA POS — Production Database Seed")
+    print("=" * 55)
+
+    print("\n[*] Verifying database tables exist...")
+    Base.metadata.create_all(bind=engine)
+    print("    [OK] Tables verified / created.")
+
     db: Session = SessionLocal()
     try:
-        print("=" * 55)
-        print("  AURA POS — Production Database Seed")
-        print("=" * 55)
 
         print("\n[1/4] Seeding Roles...")
         roles = seed_roles(db)

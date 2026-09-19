@@ -1,0 +1,14 @@
+# =============================================================
+# AURA POS — Hermes Agent Dockerfile (Production)
+# =============================================================
+# Bundles the official Hermes Agent image with AURA POS SOUL.md
+# domain knowledge, business rules, and persona.
+# =============================================================
+
+FROM nousresearch/hermes-agent:latest
+
+# Copy AURA POS agent domain guidelines & configuration
+COPY hermes_conf/ /app/config/
+
+# Working directory
+WORKDIR /app

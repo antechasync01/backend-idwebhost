@@ -53,13 +53,12 @@ RUN chown -R appuser:appuser /app
 # Switch to non-root user
 USER appuser
 
-# Expose only the ports this container needs
-# Override at docker-compose level per-service
-EXPOSE 8000
+# Expose ports for FastAPI (8000) and MCP SSE (8001)
+EXPOSE 8000 8001
 
-# Health check
+# Health check (flexible: checks FastAPI port 8000 or MCP SSE port 8001)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8000/health || curl -s http://localhost:8001/sse > /dev/null || exit 1
 
 # Default command: production uvicorn (no reload, multiple workers)
 CMD ["python", "-m", "uvicorn", "app.main:app", \
