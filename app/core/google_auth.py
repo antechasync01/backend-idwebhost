@@ -32,4 +32,4 @@ def auth_google(scopes: List[str]=["https://www.googleapis.com/auth/calendar.rea
     print(credentials.refresh_token)
 
 if __name__ == "__main__":
-    auth_google()
+    auth_google(json_client="C:/Users/werty/Documents/Learning/Hackathon/ID_Webhost AI Hackathon/Backend/app/core/client_secret_37652956420-npjqt94rrqf3ff723v5pasp3k3mpgi75.apps.googleusercontent.com.json")

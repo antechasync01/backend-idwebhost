@@ -9,6 +9,7 @@ docs/
 # Virtual environments
 .venv
 .env
+.env.prod
 
 # Google OAuth credentials
 app/core/*client_secret*.json
