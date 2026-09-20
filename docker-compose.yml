@@ -61,17 +61,7 @@ services:
       dockerfile: Dockerfile
     container_name: aura_backend
     restart: always
-    # Menjalankan migrasi database, initial seeding, lalu uvicorn multi-workers
-    command: >
-      sh -c "python -m alembic upgrade head &&
-             python scripts/seed_production.py &&
-             python -m uvicorn app.main:app
-               --host 0.0.0.0
-               --port 8000
-               --workers 4
-               --proxy-headers
-               --forwarded-allow-ips '*'
-               --access-log"
+    command: sh -c "python -m alembic upgrade head && python scripts/seed_production.py && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips '*' --access-log"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-aura_prod}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-aura_pos}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET wajib diisi di file env}
