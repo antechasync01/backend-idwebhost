@@ -57,10 +57,10 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")  
     GOOGLE_REFRESH_TOKEN: str = os.getenv("GOOGLE_REFRESH_TOKEN", "")
 
-    # CORS (supports list, JSON string array, and comma-separated strings)
-    CORS_ORIGINS: list[str] = ["*"]
+    # CORS (supports list, JSON string array, and comma-separated strings like '*')
+    CORS_ORIGINS: list[str] | str = ["*"]
 
-    @field_validator("CORS_ORIGINS", mode="before")
+    @field_validator("CORS_ORIGINS")
     @classmethod
     def parse_cors_origins(cls, v: Any) -> list[str]:
         if isinstance(v, str):
