@@ -1,38 +1,44 @@
 # =============================================================
-# AURA POS — Docker Compose Production
+# AURA POS — Standalone Production Docker Compose
 # =============================================================
-# Usage:
-#   cp .env.example .env.prod   (edit with real production values)
-#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# Deployment langsung menggunakan Docker & Docker Compose murni (tanpa Dokploy)
 #
-# IMPORTANT: Semua secret WAJIB diisi di .env.prod sebelum deploy.
-# Jangan pernah commit file .env.prod ke repository.
+# Cara Menjalankan:
+#   1. Salin template env:  cp .env.example .env.prod
+#   2. Isi semua secret di: .env.prod
+#   3. Jalankan stack:      docker compose --env-file .env.prod up -d --build
+#   4. Cek logs:            docker compose logs -f backend
+#   5. Hentikan stack:      docker compose down
+#
+# Seluruh komponen (Database, Backend, MCP, Hermes Agent) terintegrasi
+# dalam 1 network internal yang aman dan terisolasi.
+# Hanya port Backend (8000) yang terbuka ke host.
 # =============================================================
 
 services:
 
-  # ──────────────────────────────────────────
-  # 1. PostgreSQL Database
-  # ──────────────────────────────────────────
+  # ──────────────────────────────────────────────────────────
+  # 1. PostgreSQL 16 Database
+  # ──────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: aura_prod_postgres
+    container_name: aura_postgres
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-aura_prod}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi di file env}
+      POSTGRES_DB: ${POSTGRES_DB:-aura_pos}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aura_prod} -d ${POSTGRES_DB:-aura_pos}"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 15s
     networks:
-      - aura_internal
-    # ⚠️ Port TIDAK di-expose ke host — hanya accessible via internal network
+      - aura_net
+    # Port sengaja TIDAK di-expose ke host publik demi keamanan
     deploy:
       resources:
         limits:
@@ -46,15 +52,16 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  # ──────────────────────────────────────────
-  # 2. AURA POS Backend (FastAPI)
-  # ──────────────────────────────────────────
+  # ──────────────────────────────────────────────────────────
+  # 2. AURA POS Backend (FastAPI Core Engine)
+  # ──────────────────────────────────────────────────────────
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.prod
-    container_name: aura_prod_backend
+      dockerfile: Dockerfile
+    container_name: aura_backend
     restart: always
+    # Menjalankan migrasi database, initial seeding, lalu uvicorn multi-workers
     command: >
       sh -c "python -m alembic upgrade head &&
              python scripts/seed_production.py &&
@@ -66,11 +73,11 @@ services:
                --forwarded-allow-ips '*'
                --access-log"
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-aura_prod}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-aura_pos}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET wajib diisi di file env}
       - HERMES_API_URL=http://hermes_agent:8642
-      - HERMES_API_SERVER_KEY=${HERMES_API_SERVER_KEY}
-      - LLM_API_KEY=${LLM_API_KEY}
+      - HERMES_API_SERVER_KEY=${HERMES_API_SERVER_KEY:-}
+      - LLM_API_KEY=${LLM_API_KEY:-}
       - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
       - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
       - WEATHER_API_KEY=${WEATHER_API_KEY:-}
@@ -78,20 +85,20 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - GOOGLE_REFRESH_TOKEN=${GOOGLE_REFRESH_TOKEN:-}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
     networks:
-      - aura_internal
-      - aura_public
+      - aura_net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 25s
     deploy:
       resources:
         limits:
@@ -105,18 +112,18 @@ services:
         max-size: "20m"
         max-file: "10"
 
-  # ──────────────────────────────────────────
-  # 3. MCP SSE Server (untuk Hermes Agent)
-  # ──────────────────────────────────────────
+  # ──────────────────────────────────────────────────────────
+  # 3. MCP SSE Server (Model Context Protocol Gateway)
+  # ──────────────────────────────────────────────────────────
   mcp_sse:
     build:
       context: .
-      dockerfile: Dockerfile.prod
-    container_name: aura_prod_mcp_sse
+      dockerfile: Dockerfile
+    container_name: aura_mcp_sse
     restart: always
     command: "python -m app.mcp.server --transport sse"
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-aura_prod}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-aura_pos}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - GOOGLE_REFRESH_TOKEN=${GOOGLE_REFRESH_TOKEN:-}
@@ -124,10 +131,10 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - aura_internal
-    # ⚠️ Port TIDAK di-expose ke host — hanya Hermes yang perlu akses via internal network
+      - aura_net
+    # Internal port 8001 tidak diekspos ke host publik
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/sse"]
+      test: ["CMD-SHELL", "curl -s -m 2 http://localhost:8001/sse > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -145,43 +152,50 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  # ──────────────────────────────────────────
-  # 4. Hermes Agent (AI Reasoning Engine)
-  # ──────────────────────────────────────────
+  # ──────────────────────────────────────────────────────────
+  # 4. Hermes Agent (AI Autonomous Reasoning Engine)
+  # ──────────────────────────────────────────────────────────
   hermes_agent:
     image: nousresearch/hermes-agent:latest
-    container_name: aura_prod_hermes_agent
+    container_name: aura_hermes_agent
     restart: always
     tty: true
     stdin_open: true
     command: ["gateway", "run"]
+    volumes:
+      # Mount konfigurasi SOUL.md dan skills AURA ke dalam agent
+      - ./hermes_conf:/app/config:ro
+      # Persistensi memori dan data agent
+      - hermes_data:/app/data
     environment:
-      # Server Config
+      # Server Config (hanya diakses oleh backend via network aura_net)
       - API_SERVER_HOST=0.0.0.0
       - API_SERVER_ENABLED=true
       - API_SERVER_PORT=8642
-      - API_SERVER_KEY=${HERMES_API_SERVER_KEY}
+      - API_SERVER_KEY=${HERMES_API_SERVER_KEY:-}
 
       # LLM Provider
       - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
 
-      # MCP Connection (internal network)
+      # MCP Connection (internal URL ke container mcp_sse)
       - MCP_SERVER_URL=http://mcp_sse:8001/sse
+      - MCP_SERVERS=[{"name":"aura","url":"http://mcp_sse:8001/sse"}]
 
-      # Agent Identity
+      # Persona Role
       - SYSTEM_ROLE=OWNER
 
-      # Dashboard (disable di production, atau aktifkan dengan credentials kuat)
+      # Hermes Web Dashboard (Opsional, dinonaktifkan secara default di production)
       - HERMES_DASHBOARD=${HERMES_DASHBOARD_ENABLED:-false}
       - HERMES_DASHBOARD_HOST=0.0.0.0
       - HERMES_DASHBOARD_PORT=9119
       - HERMES_DASHBOARD_BASIC_AUTH_USERNAME=${HERMES_DASHBOARD_USERNAME:-admin}
-      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${HERMES_DASHBOARD_PASSWORD}
+      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${HERMES_DASHBOARD_PASSWORD:-}
     depends_on:
       - mcp_sse
     networks:
-      - aura_internal
-    # ⚠️ Port TIDAK di-expose ke host — Backend akses via internal network
+      - aura_net
     deploy:
       resources:
         limits:
@@ -196,23 +210,20 @@ services:
         max-file: "10"
 
 
-# ──────────────────────────────────────────
+# ──────────────────────────────────────────────────────────
 # Networks
-# ──────────────────────────────────────────
+# ──────────────────────────────────────────────────────────
 networks:
-  # Internal network — service-to-service communication only
-  aura_internal:
+  aura_net:
     driver: bridge
-    internal: true
-
-  # Public network — only backend exposed to host
-  aura_public:
-    driver: bridge
+    name: aura_production_network
 
 
-# ──────────────────────────────────────────
-# Volumes
-# ──────────────────────────────────────────
+# ──────────────────────────────────────────────────────────
+# Volumes (Persistensi Data)
+# ──────────────────────────────────────────────────────────
 volumes:
   postgres_data:
-    driver: local
+    name: aura_postgres_data
+  hermes_data:
+    name: aura_hermes_data

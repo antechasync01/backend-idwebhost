@@ -58,7 +58,7 @@ EXPOSE 8000 8001
 
 # Health check (flexible: checks FastAPI port 8000 or MCP SSE port 8001)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:8000/health || curl -s http://localhost:8001/sse > /dev/null || exit 1
+    CMD curl -f http://localhost:8000/health || curl -s -m 2 http://localhost:8001/sse > /dev/null || exit 1
 
 # Default command: production uvicorn (no reload, multiple workers)
 CMD ["python", "-m", "uvicorn", "app.main:app", \
